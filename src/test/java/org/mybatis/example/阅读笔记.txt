@@ -1,0 +1,158 @@
+---------parseConfiguration(XNode root)--------
+<configuration>
+<properties resource="config.properties">
+  </properties>
+<environments default="development">
+<environment id="development">
+<transactionManager type="JDBC"/>
+<dataSource type="POOLED">
+<property name="driver" value="${driver}"/>
+<property name="url" value="${url}"/>
+<property name="username" value="${username}"/>
+<property name="password" value="${password}"/>
+</dataSource>
+</environment>
+</environments>
+<mappers>
+<mapper resource="mybatis/UserMapper.xml"/>
+</mappers>
+</configuration>
+
+
+-------environmentsElement(XNode context)-------
+<environments default="development">
+<environment id="development">
+<transactionManager type="JDBC"/>
+<dataSource type="POOLED">
+<property name="driver" value="com.mysql.cj.jdbc.Driver"/>
+<property name="url" value="jdbc:mysql://127.0.0.1:3306/ppp?serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8&useSSL=false"/>
+<property name="username" value="root"/>
+<property name="password" value="123456"/>
+</dataSource>
+</environment>
+</environments>
+
+
+key="pooled"   value="class org.apache.ibatis.datasource.pooled.PooledDataSourceFactory"
+
+
+----------configurationElement(XNode context)------------
+<mapper namespace="org.mybatis.example.UserMapper">
+<sql id="userColumnsWithPswd">
+		a.id AS "id",
+		a.deleted_flag AS "deletedFlag",
+		a.create_time AS "createTime",
+		a.code AS "code",
+		a.avatar AS "avatar",
+		a.account AS "account",
+		a.password AS "password",
+		a.salt AS "salt",
+		a.name AS "name",
+		a.birthday AS "birthday",
+		a.sex AS "sex",
+		a.email AS "email",
+		a.phone AS "phone",
+		a.dept_id AS "deptId",
+		a.status AS "status"
+	</sql>
+<select resultType="org.mybatis.example.User" id="getById">
+    SELECT
+      *
+    FROM sys_user a
+    WHERE a.id = #{id}
+  </select>
+<select resultType="HashMap" id="getByAccount">
+		SELECT
+			*
+		FROM sys_user a
+		WHERE a.account = #{account} and a.deleted_flag != 1
+	</select>
+</mapper>
+
+
+
+SELECT * FROM sys_user a WHERE a.id = ?
+
+
+
+
+org.apache.ibatis.mapping.MappedStatement  select
+
+
+解析一下这几个类的作用：
+1、SqlSessionFactoryBean：继承了FactoryBean和InitializingBean，符合spring loc容器bean的基本规范，
+可在获取该bean时调用getObject()方法到SqlSessionFactory。
+
+2、XMLMapperBuilder：xml文件解析器，解析Mapper对应的xml文件信息，并将xml文件信息注册到Configuration中。
+
+3、XMLStatementBuilder：xml节点解析器，用于构建select/insert/update/delete节点信息。
+
+4、MapperBuilderAssistant：Mapper构建助手，将Mapper节点信息封装成statement添加到MappedStatement中。
+
+5、MapperRegistry：Mapper注册与绑定类，将Mapper的类信息与MapperProxyFactory绑定。
+
+6、MapperAnnotationBuilder：Mapper注解解析构建器，这也是为什么mybatis可以直接在Mapper方法添加注解信息就可以不用在xml写sql信息的原因，
+这个构建器专门用于解析Mapper方法注解信息，并将这些信息封装成statement添加到MappedStatement中。
+
+
+1、Mybatis是如何获取数据库源
+org.apache.ibatis.session.SqlSessionFactoryBuilder.build(java.io.Reader, java.lang.String, java.util.Properties)
+    >org.apache.ibatis.builder.xml.XMLConfigBuilder.parse
+        >org.apache.ibatis.builder.xml.XMLConfigBuilder.environmentsElement
+            >org.apache.ibatis.builder.xml.XMLConfigBuilder.dataSourceElement
+                >org.apache.ibatis.builder.BaseBuilder.resolveAlias
+            >org.apache.ibatis.session.Configuration.setEnvironment     ### 设置数据库源
+
+
+
+
+2、Mybatis是如何获取SQL语句
+org.apache.ibatis.session.SqlSessionFactoryBuilder.build(java.io.Reader, java.lang.String, java.util.Properties)
+    >org.apache.ibatis.builder.xml.XMLConfigBuilder.parse
+        >org.apache.ibatis.builder.xml.XMLConfigBuilder.mapperElement
+            org.apache.ibatis.binding.MapperRegistry.addMapper
+                org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.parse
+                    org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.loadXmlResource
+                        org.apache.ibatis.builder.xml.XMLMapperBuilder.parse
+                            org.apache.ibatis.builder.xml.XMLMapperBuilder.configurationElement
+                                org.apache.ibatis.builder.xml.XMLMapperBuilder.buildStatementFromContext(java.util.List<org.apache.ibatis.parsing.XNode>)
+                                    org.apache.ibatis.builder.xml.XMLStatementBuilder.parseStatementNode
+                                        org.apache.ibatis.builder.MapperBuilderAssistant.addMappedStatement(java.lang.String, org.apache.ibatis.mapping.SqlSource, org.apache.ibatis.mapping.StatementType, org.apache.ibatis.mapping.SqlCommandType, java.lang.Integer, java.lang.Integer, java.lang.String, java.lang.Class<?>, java.lang.String, java.lang.Class<?>, org.apache.ibatis.mapping.ResultSetType, boolean, boolean, boolean, org.apache.ibatis.executor.keygen.KeyGenerator, java.lang.String, java.lang.String, java.lang.String, org.apache.ibatis.scripting.LanguageDriver, java.lang.String)
+                                            org.apache.ibatis.session.Configuration.addMappedStatement     ### 设置SQL语句
+                        org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.parseStatement
+                            org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.getSqlSourceFromAnnotations
+
+
+
+若是基于package或者是mapperClass加载
+org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.parse
+    >org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.loadXmlResource
+     String xmlResource = type.getName().replace('.', '/') + ".xml";
+
+
+org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.parse
+    >org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.parseStatement
+        >org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.getSqlSourceFromAnnotations
+
+
+3、Mybatis是如何操作数据库的
+sqlSessionFactory.openSession()
+    >org.apache.ibatis.session.defaults.DefaultSqlSessionFactory.openSession()
+        >org.apache.ibatis.session.defaults.DefaultSqlSessionFactory.openSessionFromDataSource
+            >org.apache.ibatis.session.defaults.DefaultSqlSession
+userMapper.getById("1")
+    >org.apache.ibatis.binding.MapperProxy.invoke
+        >org.apache.ibatis.binding.MapperMethod.execute(org.apache.ibatis.session.SqlSession, java.lang.Object[])
+            >org.apache.ibatis.session.defaults.DefaultSqlSession.selectOne(java.lang.String, java.lang.Object)
+                >org.apache.ibatis.session.defaults.DefaultSqlSession.selectList(java.lang.String, java.lang.Object, org.apache.ibatis.session.RowBounds)
+                    >org.apache.ibatis.executor.CachingExecutor.query(org.apache.ibatis.mapping.MappedStatement, java.lang.Object, org.apache.ibatis.session.RowBounds, org.apache.ibatis.session.ResultHandler)
+                        >org.apache.ibatis.executor.BaseExecutor.query(org.apache.ibatis.mapping.MappedStatement, java.lang.Object, org.apache.ibatis.session.RowBounds, org.apache.ibatis.session.ResultHandler)
+                            >org.apache.ibatis.mapping.MappedStatement.getBoundSql
+                                >org.apache.ibatis.scripting.xmltags.DynamicSqlSource.getBoundSql
+                            >org.apache.ibatis.executor.BaseExecutor.query(org.apache.ibatis.mapping.MappedStatement, java.lang.Object, org.apache.ibatis.session.RowBounds, org.apache.ibatis.session.ResultHandler, org.apache.ibatis.cache.CacheKey, org.apache.ibatis.mapping.BoundSql)
+                                >org.apache.ibatis.executor.BaseExecutor.queryFromDatabase
+                                    >org.apache.ibatis.executor.SimpleExecutor.doQuery
+                                        >org.apache.ibatis.executor.SimpleExecutor.prepareStatement
+                                            >org.apache.ibatis.executor.statement.RoutingStatementHandler.query
+                                                >org.apache.ibatis.executor.statement.PreparedStatementHandler.query
+                                                    >org.apache.ibatis.executor.resultset.DefaultResultSetHandler.handleResultSets

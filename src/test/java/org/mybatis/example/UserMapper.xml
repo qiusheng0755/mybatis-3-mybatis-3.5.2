@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.example.UserMapper">
+
+	<sql id="userColumnsWithPswd">
+		a.id AS "id",
+		a.deleted_flag AS "deletedFlag",
+		a.create_time AS "createTime",
+		a.code AS "code",
+		a.avatar AS "avatar",
+		a.account AS "account",
+		a.password AS "password",
+		a.salt AS "salt",
+		a.name AS "name",
+		a.birthday AS "birthday",
+		a.sex AS "sex",
+		a.email AS "email",
+		a.phone AS "phone",
+		a.dept_id AS "deptId",
+		a.status AS "status"
+	</sql>
+
+  <!--<select id="getById" resultType="org.mybatis.example.User">-->
+    <!--SELECT-->
+      <!--<include refid="userColumnsWithPswd"/>-->
+    <!--FROM sys_user a-->
+    <!--WHERE a.id = #{id}-->
+  <!--</select>-->
+
+  <!--<select id="getByMap" resultType="HashMap">-->
+    <!--SELECT-->
+      <!--<include refid="userColumnsWithPswd"/>-->
+    <!--FROM sys_user a-->
+    <!--WHERE a.code = #{code}-->
+      <!--AND a.sex = #{sex}-->
+  <!--</select>-->
+
+  <select id="getByMapList" resultType="HashMap">
+    SELECT * FROM sys_user a
+    <where>
+        <if test="sex != null and sex != ''">
+            AND a.sex = #{sex}
+        </if>
+        <if test="deletedFlag != null and deletedFlag != ''">
+            AND a.deleted_flag = #{deletedFlag}
+        </if>
+    </where>
+  </select>
+
+  <!--<select id="getDefautUser" resultType="org.mybatis.example.User">-->
+    <!--SELECT-->
+      <!--<include refid="userColumnsWithPswd"/>-->
+    <!--FROM sys_user a-->
+    <!--WHERE a.id = 1-->
+  <!--</select>-->
+
+	<!--<select id="getByAccount" resultType="HashMap">-->
+    <!--SELECT-->
+      <!--<include refid="userColumnsWithPswd"/>-->
+    <!--FROM sys_user a-->
+		<!--WHERE a.account = #{account}-->
+		  <!--AND a.deleted_flag != 1-->
+	<!--</select>-->
+
+</mapper>
